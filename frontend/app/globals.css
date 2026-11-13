@@ -1,0 +1,95 @@
+@import "tailwindcss";
+@import "./dark-theme.css";
+
+/* Varianta `dark:` urmeaza clasa .dark de pe <html> (setata de ThemeToggle), nu preferinta sistemului. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --brand-blue: #0ea5e9;
+  --brand-blue-deep: #0369a1;
+  --brand-yellow: #facc15;
+
+  /* Fundalurile de pagina (gradientele radiale din hero-uri); in modul intunecat devin bleumarin. */
+  --glow-amber: #fef3c7;
+  --glow-yellow: #fefce8;
+  --glow-blue: #eff6ff;
+  --glow-sky: #eef8ff;
+  --glow-blue-deep: #dbeafe;
+  --glow-sky-deep: #e0f2fe;
+  --glow-violet: #f5f3ff;
+  --glow-indigo: #e0e7ff;
+  --glow-sky-haze: rgba(186, 230, 253, 0.5);
+  --glow-amber-haze: rgba(254, 243, 199, 0.45);
+}
+
+html.dark {
+  --background: oklch(19.5% 0.03 262);
+  --foreground: oklch(95% 0.01 255);
+  --glow-amber: oklch(21% 0.025 75);
+  --glow-yellow: oklch(20% 0.022 90);
+  --glow-blue: oklch(17% 0.03 258);
+  --glow-sky: oklch(17% 0.03 245);
+  --glow-blue-deep: oklch(13.5% 0.03 262);
+  --glow-sky-deep: oklch(13.5% 0.03 250);
+  --glow-violet: oklch(22% 0.04 290);
+  --glow-indigo: oklch(14% 0.035 275);
+  --glow-sky-haze: oklch(30% 0.06 240 / 0.5);
+  --glow-amber-haze: oklch(30% 0.05 75 / 0.35);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+@layer base {
+  a[href],
+  button:not(:disabled),
+  label[for],
+  summary,
+  select:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"][href],
+  [role="menuitem"],
+  [role="tab"] {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand-blue-deep);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}

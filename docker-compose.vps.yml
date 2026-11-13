@@ -1,0 +1,151 @@
+# Stack complet pe un singur VPS (Hostinger sau altul).
+# Folosește: docker compose -f docker-compose.vps.yml --env-file .env.vps up -d
+#
+# Judge (rulare cod, isolate): docker compose -f docker-compose.vps.yml --env-file .env.vps --profile judge up -d
+
+name: zecelainfo
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zecelainfo}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.vps}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-zecelainfo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.vps
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zecelainfo}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      PORT: "4000"
+      JUDGE_INTERACTIVE_WS_URL: ws://judge:4100
+      BAC_SUBMISSIONS_UPLOAD_DIR: /data/bac-uploads
+      BAC_SUBJECTS_UPLOAD_DIR: /data/bac-subjects
+      COURSE_RESOURCES_UPLOAD_DIR: /app/storage/course-resources
+      GRILE_QUESTIONS_UPLOAD_DIR: /data/grile-question-images
+      CLAUDE_FILES_UPLOAD_DIR: /data/claude-files
+      BAC_EXAM_IMAGES_UPLOAD_DIR: /data/bac-exam-images
+      # Fără domeniu: http://IP_PUBLIC (fără slash final). Din .env.vps — nu se citește backend/.env în imagine.
+      APP_BASE_URL: ${APP_BASE_URL:-}
+    volumes:
+      - backend_storage:/app/storage
+      - bac_uploads:/data/bac-uploads
+      - bac_subjects:/data/bac-subjects
+      - grile_question_images:/data/grile-question-images
+      - claude_files:/data/claude-files
+      - bac_exam_images:/data/bac-exam-images
+    expose:
+      - "4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Gol = browser folosește same-origin `/api/...` (nginx → backend). Setează explicit dacă API e pe alt domeniu.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+        NEXT_PUBLIC_GA_MEASUREMENT_ID: ${NEXT_PUBLIC_GA_MEASUREMENT_ID:-}
+        NEXT_PUBLIC_TIKTOK_PIXEL_ID: ${NEXT_PUBLIC_TIKTOK_PIXEL_ID:-}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      # RSC/SSR în container: apelează backend pe rețeaua Docker (nu domeniul public).
+      INTERNAL_API_URL: http://backend:4000
+      GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+    volumes:
+      - bac_uploads:/app/public/uploads/bac-submissions
+      - bac_subjects:/app/public/uploads/bac-subjects
+      - bac_exam_images:/app/public/uploads/bac-exam
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.vps.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - bac_uploads:/var/www/bac-uploads:ro
+      - bac_subjects:/var/www/bac-subjects:ro
+      - grile_question_images:/var/www/grile-question-images:ro
+      - bac_exam_images:/var/www/bac-exam-images:ro
+    depends_on:
+      - frontend
+      - backend
+
+  judge:
+    profiles: ["judge"]
+    build: ./judge
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+      - SYS_CHROOT
+      - NET_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zecelainfo}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+    expose:
+      - "4100"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  redis_data:
+  backend_storage:
+  bac_uploads:
+  bac_subjects:
+  grile_question_images:
+  claude_files:
+  bac_exam_images:

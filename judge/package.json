@@ -1,0 +1,19 @@
+{
+  "name": "judge",
+  "version": "1.0.0",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Judge worker for zecelainfo.ro",
+  "dependencies": {
+    "bullmq": "^5.76.2",
+    "ioredis": "^5.10.1",
+    "node-pty": "^1.0.0",
+    "pg": "^8.20.0",
+    "ws": "^8.18.0"
+  }
+}

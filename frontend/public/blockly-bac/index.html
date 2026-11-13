@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Editor Pseudocod Bac – Blocuri</title>
+
+  <!-- Blockly -->
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 { margin-bottom: 10px; }
+    #blocklyDiv {
+      height: 500px;
+      width: 100%;
+      border: 2px solid #ccc;
+      margin-bottom: 20px;
+    }
+    #genereaza {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    #genereaza:hover { background: #0b7dda; }
+
+    #outputs {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+    }
+    #outputs > div {
+      flex: 1;
+    }
+    #pseudocode, #cppcode {
+      background: #f7f7f7;
+      padding: 15px;
+      border: 1px solid #ccc;
+      min-height: 200px;
+      white-space: pre-wrap;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+<h1>Editor Pseudocod Bac – Drag &amp; Drop</h1>
+
+<div id="blocklyDiv"></div>
+
+<!-- TOOLBOX -->
+<xml id="toolbox" style="display:none">
+  <category name="I/O" colour="#4CAF50">
+    <block type="citeste"></block>
+    <block type="scrie"></block>
+  </category>
+
+  <category name="Variabile" colour="#FF9800">
+    <block type="variables_set"></block>
+    <block type="variables_get"></block>
+    <block type="math_number"></block>
+  </category>
+
+  <category name="Text" colour="#607D8B">
+    <block type="text"></block>
+    <block type="text_concat"></block>
+  </category>
+
+  <category name="Expresii logice" colour="#9C27B0">
+    <block type="relational_op"></block>
+    <block type="logic_op"></block>
+    <block type="logic_not"></block>
+  </category>
+
+  <category name="Expresii aritmetice" colour="#FF5722">
+    <block type="math_arithmetic"></block>
+    <block type="math_modulo"></block>
+  </category>
+
+  <category name="Control" colour="#2196F3">
+    <block type="daca_altfel"></block>
+    <block type="cat_timp"></block>
+    <block type="executa_cat_timp"></block>
+    <block type="repeta_pana"></block>
+    <block type="pentru"></block>
+  </category>
+</xml>
+
+<button id="genereaza">Generează</button>
+
+<div id="outputs">
+  <div>
+    <h2>Pseudocod generat:</h2>
+    <pre id="pseudocode"></pre>
+  </div>
+  <div>
+    <h2>Cod C++ generat:</h2>
+    <pre id="cppcode"></pre>
+  </div>
+</div>
+
+<script>
+  // =======================
+  // 1. DEFINIRE BLOCURI
+  // =======================
+
+  // CITESTE
+  Blockly.Blocks['citeste'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField("citește")
+        .appendField(new Blockly.FieldTextInput("x"), "VAR");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(90);
+    }
+  };
+
+  // SCRIE
+  Blockly.Blocks['scrie'] = {
+    init: function () {
+      this.appendValueInput("VAL")
+        .appendField("scrie");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(90);
+    }
+  };
+
+  // DACA-ALTFEL
+  Blockly.Blocks['daca_altfel'] = {
+    init: function () {
+      this.appendValueInput("COND")
+        .setCheck("Boolean")
+        .appendField("dacă");
+      this.appendStatementInput("THEN")
+        .appendField("atunci");
+      this.appendStatementInput("ELSE")
+        .appendField("altfel");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(160);
+    }
+  };
+
+  // CAT TIMP (while clasic)
+  Blockly.Blocks['cat_timp'] = {
+    init: function () {
+      this.appendValueInput("COND")
+        .setCheck("Boolean")
+        .appendField("cât timp");
+      this.appendStatementInput("DO")
+        .appendField("execută");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(210);
+    }
+  };
+
+  // EXECUTA ... CAT TIMP ...  (do { } while(cond);)
+  Blockly.Blocks['executa_cat_timp'] = {
+    init: function () {
+      this.appendStatementInput("DO")
+        .appendField("execută");
+      this.appendValueInput("COND")
+        .setCheck("Boolean")
+        .appendField("cât timp");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(210);
+    }
+  };
+
+  // REPETA ... PANA CAND ...  (do { } while(!cond);)
+  Blockly.Blocks['repeta_pana'] = {
+    init: function () {
+      this.appendStatementInput("DO")
+        .appendField("repetă");
+      this.appendValueInput("COND")
+        .setCheck("Boolean")
+        .appendField("până când");
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(210);
+    }
+  };
+
+  // PENTRU i ← a, b, pas execută
+  // PENTRU i ← a, b, pas execută
+Blockly.Blocks['pentru'] = {
+  init: function () {
+    this.appendValueInput("START")
+      .appendField("pentru")
+      .appendField(new Blockly.FieldTextInput("i"), "VAR")
+      .appendField("←");
+    this.appendValueInput("END")
+      .appendField(",");
+    this.appendValueInput("STEP")
+      .appendField(", pas");
+    this.setInputsInline(true);            // <<< AICI MAGIA
+    this.appendStatementInput("DO")
+      .appendField("execută");
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour(210);
+  }
+};
+
+
+  // OPERATOR RELAȚIONAL
+  Blockly.Blocks['relational_op'] = {
+    init: function () {
+      this.appendValueInput("A");
+      this.appendDummyInput()
+        .appendField(new Blockly.FieldDropdown([
+          ["=", "="],
+          ["≠", "!="],
+          ["<", "<"],
+          ["≤", "<="],
+          [">", ">"],
+          ["≥", ">="]
+        ]), "OP");
+      this.appendValueInput("B");
+      this.setOutput(true, "Boolean");
+      this.setColour(200);
+    }
+  };
+
+  // LOGIC AND/OR
+  Blockly.Blocks['logic_op'] = {
+    init: function () {
+      this.appendValueInput("A").setCheck("Boolean");
+      this.appendDummyInput()
+        .appendField(new Blockly.FieldDropdown([
+          ["și", "AND"],
+          ["sau", "OR"]
+        ]), "OP");
+      this.appendValueInput("B").setCheck("Boolean");
+      this.setOutput(true, "Boolean");
+      this.setColour(200);
+    }
+  };
+
+  // LOGIC NOT
+  Blockly.Blocks['logic_not'] = {
+    init: function () {
+      this.appendValueInput("A")
+        .setCheck("Boolean")
+        .appendField("nu");
+      this.setOutput(true, "Boolean");
+      this.setColour(200);
+    }
+  };
+
+  // MODULO
+  Blockly.Blocks['math_modulo'] = {
+    init: function () {
+      this.appendValueInput("A");
+      this.appendDummyInput().appendField("%");
+      this.appendValueInput("B");
+      this.setOutput(true);
+      this.setColour(200);
+    }
+  };
+
+  // TEXT LITERAL
+  Blockly.Blocks['text'] = {
+    init: function () {
+      this.appendDummyInput()
+        .appendField('"')
+        .appendField(new Blockly.FieldTextInput("text"), "VALUE")
+        .appendField('"');
+      this.setOutput(true);
+      this.setColour(100);
+    }
+  };
+
+  // CONCATENARE TEXT / EXPR – pentru scrie "Ana are ", x, " mere."
+  Blockly.Blocks['text_concat'] = {
+    init: function () {
+      this.appendValueInput("A");
+      this.appendDummyInput().appendField(", ");
+      this.appendValueInput("B");
+      this.setOutput(true);
+      this.setColour(120);
+    }
+  };
+
+  // =======================
+  // 2. INJECT BLOCKLY
+  // =======================
+
+  const workspace = Blockly.inject('blocklyDiv', {
+    toolbox: document.getElementById('toolbox'),
+    trashcan: true
+  });
+
+  // =======================
+  // 3. GENERATOR PSEUDOCOD
+  // =======================
+
+  const END_MARK = "■"; // pătrățel de sfârșit de bloc
+
+  function pad(level) {
+    return "│   ".repeat(level);
+  }
+
+  function endLine(level) {
+    return "│   ".repeat(level) + "└" + END_MARK;
+  }
+
+  function genExpr(block) {
+    if (!block) return "";
+
+    switch (block.type) {
+      case 'variables_get': {
+        const field = block.getField('VAR');
+        const name  = field ? field.getText() : 'var';
+        return name;
+      }
+      case 'math_number': {
+        return block.getFieldValue('NUM');
+      }
+      case 'math_arithmetic': {
+        const A  = genExpr(block.getInputTargetBlock('A'));
+        const B  = genExpr(block.getInputTargetBlock('B'));
+        let op   = block.getFieldValue('OP');
+
+        const map = {
+          'ADD': '+',
+          'MINUS': '-',
+          'MULTIPLY': '*',
+          'DIVIDE': 'DIV'
+        };
+        op = map[op] || op;
+        return "(" + A + " " + op + " " + B + ")";
+      }
+      case 'math_modulo': {
+        const A = genExpr(block.getInputTargetBlock('A'));
+        const B = genExpr(block.getInputTargetBlock('B'));
+        return "(" + A + " MOD " + B + ")";
+      }
+      case 'relational_op': {
+        const A  = genExpr(block.getInputTargetBlock('A'));
+        const B  = genExpr(block.getInputTargetBlock('B'));
+        const op = block.getFieldValue('OP');
+        return "(" + A + " " + op + " " + B + ")";
+      }
+      case 'logic_op': {
+        const A  = genExpr(block.getInputTargetBlock('A'));
+        const B  = genExpr(block.getInputTargetBlock('B'));
+        const opField = block.getFieldValue('OP');
+        const op = (opField === 'AND') ? 'și' : 'sau';
+        return "(" + A + " " + op + " " + B + ")";
+      }
+      case 'logic_not': {
+        const A = genExpr(block.getInputTargetBlock('A'));
+        return "(nu " + A + ")";
+      }
+      case 'text': {
+        const raw = block.getFieldValue('VALUE') || "";
+        const safe = raw.replace(/"/g, '\\"');
+        return '"' + safe + '"';
+      }
+      case 'text_concat': {
+        const A = genExpr(block.getInputTargetBlock('A'));
+        const B = genExpr(block.getInputTargetBlock('B'));
+        return A + ", " + B;
+      }
+      default:
+        return "?";
+    }
+  }
+
+  function genStmt(block, level) {
+    if (!block) return "";
+    let code = "";
+
+    switch (block.type) {
+      case 'citeste': {
+        const v = block.getFieldValue('VAR');
+        code += pad(level) + "citește " + v + "\n";
+        break;
+      }
+      case 'scrie': {
+        const valBlock = block.getInputTargetBlock('VAL');
+        const expr = genExpr(valBlock);
+        code += pad(level) + "scrie " + expr + "\n";
+        break;
+      }
+      case 'variables_set': {
+        const field = block.getField('VAR');
+        const vName = field ? field.getText() : 'var';
+        const val   = genExpr(block.getInputTargetBlock('VALUE'));
+        code += pad(level) + vName + " ← " + val + "\n";
+        break;
+      }
+      case 'daca_altfel': {
+        const condExpr = genExpr(block.getInputTargetBlock('COND'));
+        code += pad(level) + "dacă " + condExpr + " atunci\n";
+        code += genStmt(block.getInputTargetBlock('THEN'), level + 1);
+        code += pad(level) + "│altfel\n";
+        code += genStmt(block.getInputTargetBlock('ELSE'), level + 1);
+        code += endLine(level) + "\n";
+        break;
+      }
+      case 'cat_timp': {
+        const condExpr = genExpr(block.getInputTargetBlock('COND'));
+        code += pad(level) + "cât timp " + condExpr + " execută\n";
+        code += genStmt(block.getInputTargetBlock('DO'), level + 1);
+        code += endLine(level) + "\n";
+        break;
+      }
+      case 'executa_cat_timp': {
+        const condExpr = genExpr(block.getInputTargetBlock('COND'));
+        code += pad(level) + "execută\n";
+        code += genStmt(block.getInputTargetBlock('DO'), level + 1);
+        code += pad(level) + "cât timp " + condExpr + "\n";
+        break;
+      }
+      case 'repeta_pana': {
+        const condExpr = genExpr(block.getInputTargetBlock('COND'));
+        code += pad(level) + "repetă\n";
+        code += genStmt(block.getInputTargetBlock('DO'), level + 1);
+        code += pad(level) + "până când " + condExpr + "\n";
+        break;
+      }
+      case 'pentru': {
+        const vName = block.getFieldValue('VAR') || "i";
+        const start = genExpr(block.getInputTargetBlock('START'));
+        const end   = genExpr(block.getInputTargetBlock('END'));
+        const step  = genExpr(block.getInputTargetBlock('STEP'));
+        code += pad(level) + "pentru " + vName + " ← " +
+                start + ", " + end + ", " + step + " execută\n";
+        code += genStmt(block.getInputTargetBlock('DO'), level + 1);
+        code += endLine(level) + "\n";
+        break;
+      }
+      default:
+        break;
+    }
+
+    const next = block.getNextBlock();
+    if (next) code += genStmt(next, level);
+    return code;
+  }
+
+  // =======================
+  // 4. GENERATOR C++
+  // =======================
+
+  function indentCpp(level) {
+    return "    ".repeat(level);
+  }
+
+  // gather all variable names used în afară de cele de la "pentru"
+  function collectVariables() {
+    const vars = new Set();
+    const all = workspace.getAllBlocks(false);
+
+    all.forEach(block => {
+      if (block.type === 'citeste') {
+        vars.add(block.getFieldValue('VAR'));
+      }
+      if (block.type === 'variables_set' || block.type === 'variables_get') {
+        const field = block.getField('VAR');
+        const name = field ? field.getText() : null;
+        if (name) vars.add(name);
+      }
+      // variabila de la "pentru" va fi declarată direct în for
+    });
+
+    return Array.from(vars);
+  }
+
+  function genExprCpp(block) {
+    if (!block) return "";
+
+    switch (block.type) {
+      case 'variables_get': {
+        const field = block.getField('VAR');
+        const name  = field ? field.getText() : 'var';
+        return name;
+      }
+      case 'math_number': {
+        return block.getFieldValue('NUM');
+      }
+      case 'math_arithmetic': {
+        const A  = genExprCpp(block.getInputTargetBlock('A'));
+        const B  = genExprCpp(block.getInputTargetBlock('B'));
+        let op   = block.getFieldValue('OP');
+        const map = {
+          'ADD': '+',
+          'MINUS': '-',
+          'MULTIPLY': '*',
+          'DIVIDE': '/'
+        };
+        op = map[op] || op;
+        return "(" + A + " " + op + " " + B + ")";
+      }
+      case 'math_modulo': {
+        const A = genExprCpp(block.getInputTargetBlock('A'));
+        const B = genExprCpp(block.getInputTargetBlock('B'));
+        return "(" + A + " % " + B + ")";
+      }
+      case 'relational_op': {
+        const A  = genExprCpp(block.getInputTargetBlock('A'));
+        const B  = genExprCpp(block.getInputTargetBlock('B'));
+        let op = block.getFieldValue('OP');
+
+        const map = {
+          "=":  "==",
+          "≠":  "!=",   // dacă ar veni cumva simbolic
+          "!=": "!=",
+          "<":  "<",
+          "≤":  "<=",
+          "<=": "<=",
+          ">":  ">",
+          "≥":  ">=",
+          ">=": ">="
+        };
+
+        op = map[op] || op;
+        return "(" + A + " " + op + " " + B + ")";
+      }
+      case 'logic_op': {
+        const A  = genExprCpp(block.getInputTargetBlock('A'));
+        const B  = genExprCpp(block.getInputTargetBlock('B'));
+        const opField = block.getFieldValue('OP');
+        const op = (opField === 'AND') ? '&&' : '||';
+        return "(" + A + " " + op + " " + B + ")";
+      }
+      case 'logic_not': {
+        const A = genExprCpp(block.getInputTargetBlock('A'));
+        return "!(" + A + ")";
+      }
+      case 'text': {
+        const raw = block.getFieldValue('VALUE') || "";
+        const safe = raw.replace(/"/g, '\\"');
+        return '"' + safe + '"';
+      }
+      case 'text_concat': {
+        const A = genExprCpp(block.getInputTargetBlock('A'));
+        const B = genExprCpp(block.getInputTargetBlock('B'));
+        return "(" + A + " + " + B + ")";
+      }
+      default:
+        return "/* ? */";
+    }
+  }
+
+  // pentru scrie: flatten text_concat în listă de bucăți
+  function flattenConcat(block) {
+    if (!block) return [];
+    if (block.type === 'text_concat') {
+      const left = flattenConcat(block.getInputTargetBlock('A'));
+      const right = flattenConcat(block.getInputTargetBlock('B'));
+      return left.concat(right);
+    }
+    return [genExprCpp(block)];
+  }
+
+  function genStmtCpp(block, level) {
+    if (!block) return "";
+    let code = "";
+
+    switch (block.type) {
+      case 'citeste': {
+        const v = block.getFieldValue('VAR');
+        code += indentCpp(level) + "cin >> " + v + ";\n";
+        break;
+      }
+      case 'scrie': {
+        const valBlock = block.getInputTargetBlock('VAL');
+        const parts = flattenConcat(valBlock);
+        let line = indentCpp(level) + "cout";
+        if (parts.length === 0) {
+          line += " << \"\"";
+        } else {
+          parts.forEach(p => { line += " << " + p; });
+        }
+        line += ";\n";
+        code += line;
+        break;
+      }
+      case 'variables_set': {
+        const field = block.getField('VAR');
+        const vName = field ? field.getText() : 'var';
+        const val   = genExprCpp(block.getInputTargetBlock('VALUE'));
+        code += indentCpp(level) + vName + " = " + val + ";\n";
+        break;
+      }
+      case 'daca_altfel': {
+        const condExpr = genExprCpp(block.getInputTargetBlock('COND'));
+        code += indentCpp(level) + "if (" + condExpr + ") {\n";
+        code += genStmtCpp(block.getInputTargetBlock('THEN'), level + 1);
+        code += indentCpp(level) + "} else {\n";
+        code += genStmtCpp(block.getInputTargetBlock('ELSE'), level + 1);
+        code += indentCpp(level) + "}\n";
+        break;
+      }
+      case 'cat_timp': {
+        const condExpr = genExprCpp(block.getInputTargetBlock('COND'));
+        code += indentCpp(level) + "while (" + condExpr + ") {\n";
+        code += genStmtCpp(block.getInputTargetBlock('DO'), level + 1);
+        code += indentCpp(level) + "}\n";
+        break;
+      }
+      case 'executa_cat_timp': {
+        const condExpr = genExprCpp(block.getInputTargetBlock('COND'));
+        code += indentCpp(level) + "do {\n";
+        code += genStmtCpp(block.getInputTargetBlock('DO'), level + 1);
+        code += indentCpp(level) + "} while (" + condExpr + ");\n";
+        break;
+      }
+      case 'repeta_pana': {
+        const condExpr = genExprCpp(block.getInputTargetBlock('COND'));
+        code += indentCpp(level) + "do {\n";
+        code += genStmtCpp(block.getInputTargetBlock('DO'), level + 1);
+        code += indentCpp(level) + "} while (!(" + condExpr + "));\n";
+        break;
+      }
+      case 'pentru': {
+    const vName = block.getFieldValue('VAR') || "i";
+    const startExpr = genExprCpp(block.getInputTargetBlock('START'));
+    const endExpr   = genExprCpp(block.getInputTargetBlock('END'));
+    const stepBlock = block.getInputTargetBlock('STEP');
+    const stepExpr  = genExprCpp(stepBlock);
+
+    // determinăm sensul în funcție de semnul pasului
+    let cmp = "<=";
+    let incrementPart = "";
+
+    if (stepBlock && stepBlock.type === 'math_number') {
+      const raw = stepBlock.getFieldValue('NUM');
+      const num = parseFloat(raw);
+      if (!isNaN(num)) {
+        if (num > 0) {
+          cmp = "<=";
+          incrementPart = vName + " += " + num;
+        } else if (num < 0) {
+          cmp = ">=";
+          incrementPart = vName + " -= " + (-num);  // i -= (-pas)
+        }
+      }
+    } else {
+      // Dacă pasul este o expresie necunoscută:
+      // fallback generic (presupunem pas pozitiv)
+      incrementPart = vName + " += " + stepExpr;
+    }
+
+    code += indentCpp(level)
+          + "for (int " + vName + " = " + startExpr + "; "
+          + vName + " " + cmp + " " + endExpr + "; "
+          + incrementPart + ") {\n";
+
+    code += genStmtCpp(block.getInputTargetBlock('DO'), level + 1);
+    code += indentCpp(level) + "}\n";
+    break;
+}
+
+      default:
+        break;
+    }
+
+    const next = block.getNextBlock();
+    if (next) code += genStmtCpp(next, level);
+    return code;
+  }
+
+  function generateCppProgram() {
+    const vars = collectVariables();
+    let code = "#include <iostream>\nusing namespace std;\n\nint main() {\n";
+    if (vars.length > 0) {
+      code += "    int " + vars.join(", ") + ";\n";
+    }
+    const topBlocks = workspace.getTopBlocks(true);
+    topBlocks.forEach(block => {
+      code += genStmtCpp(block, 1);
+    });
+    code += "    return 0;\n}\n";
+    return code;
+  }
+
+  // =======================
+  // 5. BUTON "GENEREAZĂ"
+  // =======================
+
+  function buildOutputs() {
+    let pseudo = "";
+    const topBlocks = workspace.getTopBlocks(true);
+    topBlocks.forEach(block => {
+      pseudo += genStmt(block, 0);
+    });
+    document.getElementById("pseudocode").textContent = pseudo;
+
+    const cpp = generateCppProgram();
+    document.getElementById("cppcode").textContent = cpp;
+
+    const xml = Blockly.Xml.workspaceToDom(workspace);
+    const blocklyXml = Blockly.Xml.domToText(xml);
+    return { pseudo, cpp, blocklyXml };
+  }
+
+  function notifyParent() {
+    const payload = buildOutputs();
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "blockly-bac-update", ...payload }, "*");
+    }
+  }
+
+  document.getElementById("genereaza").onclick = function () {
+    notifyParent();
+  };
+
+  workspace.addChangeListener(function () {
+    clearTimeout(window.__blocklyNotifyTimer);
+    window.__blocklyNotifyTimer = setTimeout(notifyParent, 400);
+  });
+
+  window.addEventListener("message", function (event) {
+    const data = event.data || {};
+    if (data.type === "blockly-bac-load-xml" && data.blocklyXml) {
+      try {
+        const xml = Blockly.utils.xml.textToDom(data.blocklyXml);
+        workspace.clear();
+        Blockly.Xml.domToWorkspace(xml, workspace);
+        notifyParent();
+      } catch (e) {
+        console.error("Failed to load Blockly XML", e);
+      }
+    }
+    if (data.type === "blockly-bac-request-sync") {
+      notifyParent();
+    }
+  });
+
+  notifyParent();
+</script>
+</body>
+</html>

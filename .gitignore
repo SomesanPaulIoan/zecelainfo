@@ -1,0 +1,62 @@
+# Config plăți meditații (secrete) — nu comita
+_config_pay_meditatii.php
+
+# Secrets producție VPS (Docker Compose)
+.env.vps
+
+# Environment files and backups (including .env.example until sanitized)
+.env
+.env.*
+*.env
+*.env.*
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
+service_account*.json
+.npmrc
+.pypirc
+.netrc
+
+# Dependencies and generated builds
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+
+# Database exports and backups (keep versioned migrations)
+/*.sql
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.bak-*
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Runtime data, invoices and local uploads
+backend/storage/
+claude-files/
+frontend/public/uploads/
+frontend/public/grile-images/
+
+# Local logs and OS metadata
+*.log
+.DS_Store
+__MACOSX/
+
+# Sanitized configuration templates
+!.env.example
+!**/.env.example
+frontend/public/assets/subiecte/

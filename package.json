@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "dev:start": "bash ./scripts/dev-start.sh",
+    "dev:infra": "docker compose up -d",
+    "dev:stop": "docker compose down"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "google-auth-library": "^10.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.6",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.20.0"
+  }
+}
